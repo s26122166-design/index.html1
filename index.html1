@@ -1,545 +1,602 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>自定義迷因 (Meme) 產生器</title>
-
-  <!-- 1. 引入 Google Fonts (Fredoka 活潑英文字體 + Noto Sans TC 圓潤繁體字體) -->
+  <title>朋友對我的動態留言板</title>
+  
+  <!-- 引入 Google 字型 (Noto Sans TC & Fredoka) 提升休閒質感 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
-
-  <!-- 2. 引入 Font Awesome 圖示庫 (讓按鈕與圖示更生動) -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- 引入 FontAwesome 圖示庫 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <!-- 3. 引入 html2canvas 畫布擷取工具 (將網頁元素轉為圖片下載) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
   <style>
-    /* ------------------------------------
-       CSS 變數與基礎設定 (休閒輕鬆風配色)
-       ------------------------------------ */
+    /* =========================================================
+       🎨【色彩與主題控制區 (CSS Variables)】
+       若想更換主題配色，可直接在這裡修改顏色碼！
+       ========================================================= */
     :root {
-      --bg-color: #f0f4f8;          /* 柔和天藍灰色背景 */
-      --card-bg: #ffffff;           /* 純白卡片 */
-      --primary: #ff6b6b;           /* 活力珊瑚紅 (主色調/按鈕) */
-      --primary-hover: #ff5252;
-      --accent: #4ecdc4;            /* 提神薄荷綠 (輔助色) */
-      --text-main: #2d3748;         /* 深灰色文字，比純黑更舒適 */
-      --border-color: #e2e8f0;      /* 淡灰色邊框 */
-      --radius: 16px;               /* 大圓角呈現輕鬆休閒感 */
-      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+      /* 頁面背景：溫暖奶油舒壓漸層色 */
+      --bg-gradient-start: #FFF9F3;
+      --bg-gradient-end: #F3E9DD;
+      
+      /* 文字主要與次要顏色 */
+      --text-main: #4A3E3D;
+      --text-sub: #8C7A78;
+
+      /* 一般卡片背景與柔和陰影 */
+      --card-bg: #FFFFFF;
+      --card-shadow: 0 10px 25px rgba(140, 122, 120, 0.08);
+
+      /* 💡【亮燈聚焦特效控制區】 */
+      --highlight-border: #FF7E5F;         /* 聚焦卡片的亮邊框顏色 (暖珊瑚橘) */
+      --highlight-glow: rgba(255, 126, 95, 0.4); /* 聚焦卡片的發光暈影 */
+      --highlight-badge: #FF6B6B;        /* 聚焦標籤背景色 */
+
+      /* 隨機頭像粉彩配色庫 (Pastel Palette) */
+      --avatar-color-1: #FFB7B2;
+      --avatar-color-2: #FFDAC1;
+      --avatar-color-3: #E2F0CB;
+      --avatar-color-4: #B5EAD7;
+      --avatar-color-5: #C7CEEA;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
     }
 
     body {
-      background-color: var(--bg-color);
+      font-family: 'Noto Sans TC', sans-serif;
+      background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
       color: var(--text-main);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
+      padding: 2.5rem 1rem 4rem 1rem;
     }
 
-    /* 頁面標題區 */
+    /* 頁面標題區域 */
     header {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 2.5rem;
     }
 
     header h1 {
+      font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
       font-size: 2.2rem;
-      color: var(--primary);
-      display: flex;
+      color: #3D3130;
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
       gap: 10px;
+      margin-bottom: 0.5rem;
     }
 
     header p {
-      color: #718096;
-      font-size: 0.95rem;
-      margin-top: 6px;
+      color: var(--text-sub);
+      font-size: 1rem;
     }
 
-    /* ------------------------------------
-       主要版面配置 (桌面：雙欄，手機：單欄)
-       ------------------------------------ */
-    .app-container {
-      display: grid;
-      grid-template-columns: 380px 1fr; /* 左欄固定寬度，右欄彈性自適應 */
-      gap: 24px;
-      width: 100%;
-      max-width: 1050px;
-      align-items: start;
-    }
-
-    /* 通用卡片樣式 */
-    .card {
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      padding: 24px;
-      box-shadow: var(--shadow);
-    }
-
-    /* ------------------------------------
-       左側：控制面板樣式
-       ------------------------------------ */
-    .control-panel {
+    /* 狀態顯示列 (顯示目前輪播狀態) */
+    .status-bar {
       display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .form-group label {
-      font-weight: 600;
-      font-size: 0.9rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .range-val {
-      color: var(--accent);
-      font-weight: 700;
-    }
-
-    /* 自訂圖片上傳按鈕框 */
-    .file-upload-label {
-      border: 2px dashed var(--accent);
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-      cursor: pointer;
-      background-color: #f0fdfa;
-      color: #0d9488;
-      font-weight: 600;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
       justify-content: center;
-      gap: 8px;
-    }
-
-    .file-upload-label:hover {
-      background-color: #ccfbf1;
-      transform: translateY(-1px);
-    }
-
-    input[type="file"] {
-      display: none; /* 隱藏預設的檔案選擇按鈕 */
-    }
-
-    /* 文字輸入框樣式 */
-    input[type="text"] {
-      width: 100%;
-      padding: 12px 14px;
-      border: 2px solid var(--border-color);
-      border-radius: 10px;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--primary);
-    }
-
-    /* 滑桿 (Range) 樣式自訂 */
-    input[type="range"] {
-      width: 100%;
-      accent-color: var(--primary); /* 改變滑桿主調顏色 */
-      cursor: pointer;
-    }
-
-    /* 顏色選擇器排列 */
-    .color-pickers {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      align-items: center;
       gap: 12px;
+      margin-top: 1rem;
     }
 
-    .color-picker-item {
-      display: flex;
+    .status-badge {
+      background: rgba(255, 255, 255, 0.85);
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      display: inline-flex;
       align-items: center;
       gap: 8px;
     }
 
-    input[type="color"] {
-      -webkit-appearance: none;
-      border: none;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
+    .status-badge i {
+      color: var(--highlight-border);
+      animation: pulse 1.5s infinite;
     }
 
-    input[type="color"]::-webkit-color-swatch-wrapper {
-      padding: 0;
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
     }
 
-    input[type="color"]::-webkit-color-swatch {
-      border: 2px solid var(--border-color);
-      border-radius: 50%;
+    /* 主容器 */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
     }
 
-    /* 下載按鈕 (炫彩粗曠風格) */
-    .download-btn {
-      margin-top: 10px;
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      padding: 14px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      border-radius: 12px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
-      transition: all 0.2s ease;
+    /* =========================================================
+       🌀【載入中動畫效果】(Loading Animation)
+       ========================================================= */
+    #loading {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      padding: 5rem 0;
+      gap: 1.2rem;
+    }
+
+    .loading-bubbles {
+      display: flex;
       gap: 10px;
     }
 
-    .download-btn:hover {
-      background-color: var(--primary-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(255, 107, 107, 0.5);
+    .bubble {
+      width: 16px;
+      height: 16px;
+      background-color: var(--highlight-border);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
     }
 
-    .download-btn:active {
-      transform: translateY(0);
+    .bubble:nth-child(1) { animation-delay: -0.32s; }
+    .bubble:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
     }
 
-    /* ------------------------------------
-       右側：迷因預覽區樣式
-       ------------------------------------ */
-    .preview-panel {
+    .loading-text {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      letter-spacing: 1px;
+    }
+
+    /* =========================================================
+       🧱【瀑布流排版 (Masonry Layout)】
+       ========================================================= */
+    .masonry-wall {
+      /* 桌機預設 3 欄 */
+      column-count: 3;
+      column-gap: 1.8rem;
+      width: 100%;
+      transition: filter 0.5s ease;
+    }
+
+    /* 平板調整為 2 欄 */
+    @media (max-width: 900px) {
+      .masonry-wall {
+        column-count: 2;
+        column-gap: 1.2rem;
+      }
+    }
+
+    /* 手機調整為 1 欄 */
+    @media (max-width: 600px) {
+      .masonry-wall {
+        column-count: 1;
+      }
+    }
+
+    /* =========================================================
+       💌【留言卡片基礎樣式】
+       ========================================================= */
+    .card {
+      /* 關鍵設定：防止卡片在瀑布流欄位間被拆斷 */
+      break-inside: avoid;
+      page-break-inside: avoid;
+      -webkit-column-break-inside: avoid;
+
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 1.5rem;
+      margin-bottom: 1.8rem;
+      box-shadow: var(--card-shadow);
+      border: 2px solid transparent;
+      position: relative;
+
+      /* 平滑視覺轉換 (轉場靈魂) */
+      transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+      cursor: pointer;
+    }
+
+    /* 卡片頭部：頭像 + 名字 + 時間 */
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: #555;
+      flex-shrink: 0;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .user-info {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 400px;
-      background: #f8fafc;
-      border: 2px dashed #cbd5e1;
     }
 
-    /* 迷因截圖核心容器 (html2canvas 將截取這個區塊) */
-    #meme-container {
-      position: relative;
-      width: 100%;
-      max-width: 550px;
-      background-color: #e2e8f0;
-      border-radius: 12px;
-      overflow: hidden; /* 防止文字溢出容器 */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    .user-name {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-main);
     }
 
-    /* 底圖樣式 */
-    #meme-image {
-      width: 100%;
-      height: auto;
-      display: block;
-      object-fit: contain;
+    .timestamp {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      margin-top: 2px;
     }
 
-    /* 上方與下方迷因文字共通樣式 */
-    .meme-text {
+    /* 卡片內文區域 */
+    .card-body {
+      font-size: 0.98rem;
+      line-height: 1.65;
+      color: #5A4E4D;
+      white-space: pre-wrap; /* 保留留言換行與空格 */
+      word-break: break-word;
+    }
+
+    /* 右上角可愛引號圖示 */
+    .quote-icon {
       position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 90%;
-      text-align: center;
-      color: #ffffff;
-      font-weight: 900;
-      font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
-      text-transform: uppercase; /* 英文預設大寫，更有迷因感 */
-      line-height: 1.2;
-      word-wrap: break-word;
-      user-select: none; /* 防止選取文字 */
-
-      /* 核心技術：使用多層 text-shadow 打造極粗黑色邊框，確保任何圖片都清晰 */
-      text-shadow: 
-        2px  2px 0px #000,
-       -2px  2px 0px #000,
-        2px -2px 0px #000,
-       -2px -2px 0px #000,
-        0px  2px 0px #000,
-        0px -2px 0px #000,
-        2px  0px 0px #000,
-       -2px  0px 0px #000,
-        3px  3px 5px rgba(0,0,0,0.8);
+      top: 1.2rem;
+      right: 1.2rem;
+      font-size: 1.3rem;
+      color: #F0E6DF;
+      transition: color 0.5s ease;
     }
 
-    /* 上方文字定位 */
-    #text-top-display {
-      top: 5%;
+    /* =========================================================
+       ✨【隨時間輪播：高亮亮燈 (Highlight) 特效】
+       ========================================================= */
+    /* 被選中的卡片：放大、亮起發光、突顯層級 */
+    .card.highlight {
+      transform: scale(1.06) translateY(-6px);
+      border-color: var(--highlight-border);
+      box-shadow: 0 16px 38px var(--highlight-glow);
+      z-index: 10;
+      opacity: 1 !important;
+      filter: blur(0px) !important;
     }
 
-    /* 下方文字定位 */
-    #text-bottom-display {
-      bottom: 5%;
+    .card.highlight .quote-icon {
+      color: var(--highlight-border);
     }
 
-    /* ------------------------------------
-       響應式 RWD 調整 (手機螢幕 < 768px)
-       ------------------------------------ */
-    @media (max-width: 768px) {
-      .app-container {
-        grid-template-columns: 1fr; /* 改為單欄直向排列 */
-      }
+    /* 高亮時右上角自動出現的亮眼小標籤 */
+    .card.highlight::after {
+      content: "✨ Spotlight";
+      position: absolute;
+      top: -12px;
+      right: 20px;
+      background: var(--highlight-badge);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 3px 10px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      animation: popIn 0.4s ease;
+    }
 
-      /* 手機版將預覽區排在上方，方便使用者一邊調控制項一邊看效果 */
-      .preview-panel {
-        order: -1; 
-        min-height: 300px;
-      }
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-      header h1 {
-        font-size: 1.8rem;
-      }
+    /* 當有卡片高亮時，其他未選中的卡片稍微變暗、變模糊 */
+    .masonry-wall.has-highlight .card:not(.highlight) {
+      opacity: 0.42;
+      filter: blur(1.2px) grayscale(15%);
+      transform: scale(0.96);
+    }
+
+    /* 滑鼠懸停於卡片時微幅抬升 */
+    .card:hover {
+      transform: translateY(-4px);
     }
   </style>
 </head>
 <body>
 
-  <!-- 頁面頂部標題 -->
+  <!-- 頁頭標題區 -->
   <header>
-    <h1><i class="fa-solid fa-face-laugh-squint"></i> 迷因產生器</h1>
-    <p>輕鬆上傳圖片、加上搞笑文字，一鍵製作屬於你的專屬 Meme！</p>
+    <h1><i class="fa-solid fa-heart-pulse"></i> 朋友對我的動態留言板</h1>
+    <p>隨時間輪流播放朋友給我的暖心話語 💭</p>
+    <div class="status-bar">
+      <div class="status-badge" id="carouselStatus">
+        <i class="fa-solid fa-sparkles"></i> 準備播放留言中...
+      </div>
+    </div>
   </header>
 
-  <!-- 主體兩欄式容器 -->
-  <main class="app-container">
-
-    <!-- 左側：控制面板區塊 -->
-    <section class="card control-panel">
-      
-      <!-- 1. 本機圖片上傳 -->
-      <div class="form-group">
-        <label><i class="fa-solid fa-image"></i> 上傳迷因底圖</label>
-        <label for="image-upload" class="file-upload-label">
-          <i class="fa-solid fa-cloud-arrow-up"></i> 選擇電腦中的圖片...
-        </label>
-        <!-- 避開 CORS 關鍵：使用 file 類型的 input 並配合 FileReader API -->
-        <input type="file" id="image-upload" accept="image/*">
+  <!-- 主內容容器 -->
+  <div class="container">
+    <!-- 1. 載入中酷炫動畫 (預設顯示) -->
+    <div id="loading">
+      <div class="loading-bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
       </div>
+      <div class="loading-text">讀取留言中...</div>
+    </div>
 
-      <hr style="border: 0; border-top: 1px solid var(--border-color);">
+    <!-- 2. 瀑布流卡片牆 -->
+    <div id="wall" class="masonry-wall"></div>
+  </div>
 
-      <!-- 2. 上方與下方文字輸入 (Đã thay giá trị placeholder mặc định) -->
-      <div class="form-group">
-        <label for="text-top"><i class="fa-solid fa-font"></i> 上方文字</label>
-        <input type="text" id="text-top" value="耳機裡放著最甜的歌" placeholder="輸入上方文字">
-      </div>
-
-      <div class="form-group">
-        <label for="text-bottom"><i class="fa-solid fa-font"></i> 下方文字</label>
-        <input type="text" id="text-bottom" value="臉上擺著最臭的表情" placeholder="輸入下方文字">
-      </div>
-
-      <!-- 3. 滑桿控制項 -->
-      <div class="form-group">
-        <label for="font-size-slider">
-          <span><i class="fa-solid fa-text-height"></i> 字體大小</span>
-          <span class="range-val" id="font-size-val">36px</span>
-        </label>
-        <input type="range" id="font-size-slider" min="16" max="72" value="36">
-      </div>
-
-      <div class="form-group">
-        <label for="top-pos-slider">
-          <span><i class="fa-solid fa-arrows-up-down"></i> 上方文字垂直位置</span>
-          <span class="range-val" id="top-pos-val">5%</span>
-        </label>
-        <input type="range" id="top-pos-slider" min="0" max="45" value="5">
-      </div>
-
-      <div class="form-group">
-        <label for="bottom-pos-slider">
-          <span><i class="fa-solid fa-arrows-up-down"></i> 下方文字垂直位置</span>
-          <span class="range-val" id="bottom-pos-val">5%</span>
-        </label>
-        <input type="range" id="bottom-pos-slider" min="0" max="45" value="5">
-      </div>
-
-      <!-- 4. 文字與邊框顏色微調 -->
-      <div class="color-pickers">
-        <div class="color-picker-item">
-          <input type="color" id="text-color" value="#ffffff">
-          <label for="text-color" style="font-size: 0.85rem;">文字顏色</label>
-        </div>
-        <div class="color-picker-item">
-          <input type="color" id="stroke-color" value="#000000">
-          <label for="stroke-color" style="font-size: 0.85rem;">邊框顏色</label>
-        </div>
-      </div>
-
-      <!-- 5. 一鍵下載按鈕 -->
-      <button id="download-btn" class="download-btn">
-        <i class="fa-solid fa-download"></i> 下載迷因 (my-meme.png)
-      </button>
-
-    </section>
-
-    <!-- 右側：迷因預覽區塊 -->
-    <section class="card preview-panel">
-      <!-- 被 html2canvas 擷取的目標區域 -->
-      <div id="meme-container">
-        <!-- Đường link ảnh đã thay đổi -->
-        <img id="meme-image" src="https://i.postimg.cc/jSYjRQ2H/IMG-4419.jpg" alt="迷因底圖">
-        <!-- Chữ hiển thị mặc định đã cập nhật -->
-        <div id="text-top-display" class="meme-text">耳機裡放著最甜的歌</div>
-        <div id="text-bottom-display" class="meme-text">臉上擺著最臭的表情</div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ------------------------------------
-       JavaScript 邏輯處理區
-       ------------------------------------ -->
   <script>
-    // 【 DOM 元素抓取 】將 HTML 中的控制元件與顯示區塊取得並存入變數
-    const imageUpload = document.getElementById('image-upload');
-    const memeImage = document.getElementById('meme-image');
+    /* =========================================================
+       ⚙️【全域設定區】(可在此調校輪播頻率與資料網址)
+       ========================================================= */
     
-    const textTopInput = document.getElementById('text-top');
-    const textBottomInput = document.getElementById('text-bottom');
-    const textTopDisplay = document.getElementById('text-top-display');
-    const textBottomDisplay = document.getElementById('text-bottom-display');
+    // ⏰ 1. 輪播切換間隔時間 (單位：毫秒) -> 3000ms = 3秒
+    const CAROUSEL_INTERVAL_MS = 3000; 
 
-    const fontSizeSlider = document.getElementById('font-size-slider');
-    const fontSizeVal = document.getElementById('font-size-val');
+    // 🔗 2. Google 試算表 CSV 發布網址
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxyFgX1I2efq0xUtzrnSaYsNd8ZuiYlfLaiTnTLYTO0sGNt1AHoe-ibGRwzpPfRpTrhmHbvb9lvPyS/pub?output=csv';
 
-    const topPosSlider = document.getElementById('top-pos-slider');
-    const topPosVal = document.getElementById('top-pos-val');
+    // 🎨 3. 頭像隨機背景色彩庫
+    const AVATAR_COLORS = [
+      '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA', '#F3D1F4', '#FCE1E4'
+    ];
 
-    const bottomPosSlider = document.getElementById('bottom-pos-slider');
-    const bottomPosVal = document.getElementById('bottom-pos-val');
+    let messagesData = [];
+    let currentIndex = -1;
+    let carouselTimer = null;
 
-    const textColorPicker = document.getElementById('text-color');
-    const strokeColorPicker = document.getElementById('stroke-color');
+    /* =========================================================
+       1. 健全的 CSV 解析函式 (完美處理留言內部的逗號與換行)
+       ========================================================= */
+    function parseCSV(text) {
+      const rows = [];
+      let currentRow = [];
+      let currentCell = '';
+      let insideQuotes = false;
 
-    const downloadBtn = document.getElementById('download-btn');
-    const memeContainer = document.getElementById('meme-container');
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
 
-
-    // 【 1. 本機圖片上傳處理 (FileReader API) 】
-    imageUpload.addEventListener('change', function(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-          memeImage.src = e.target.result;
-        };
-        
-        reader.readAsDataURL(file);
+        if (insideQuotes) {
+          if (char === '"' && nextChar === '"') {
+            currentCell += '"'; // 處理雙重雙引號 (轉義)
+            i++; 
+          } else if (char === '"') {
+            insideQuotes = false; // 離開引號區域
+          } else {
+            currentCell += char;
+          }
+        } else {
+          if (char === '"') {
+            insideQuotes = true; // 進入引號區域
+          } else if (char === ',') {
+            currentRow.push(currentCell.trim());
+            currentCell = '';
+          } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
+            currentRow.push(currentCell.trim());
+            if (currentRow.some(cell => cell.length > 0)) {
+              rows.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = '';
+            if (char === '\r') i++; 
+          } else if (char === '\r') {
+            currentRow.push(currentCell.trim());
+            if (currentRow.some(cell => cell.length > 0)) {
+              rows.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = '';
+          } else {
+            currentCell += char;
+          }
+        }
       }
-    });
 
+      if (currentCell.length > 0 || currentRow.length > 0) {
+        currentRow.push(currentCell.trim());
+        if (currentRow.some(cell => cell.length > 0)) {
+          rows.push(currentRow);
+        }
+      }
 
-    // 【 2. 即時文字同步功能 】
-    textTopInput.addEventListener('input', () => {
-      textTopDisplay.textContent = textTopInput.value || ' ';
-    });
-
-    textBottomInput.addEventListener('input', () => {
-      textBottomDisplay.textContent = textBottomInput.value || ' ';
-    });
-
-
-    // 【 3. 滑桿微調 (字體大小與垂直位置) 】
-    fontSizeSlider.addEventListener('input', (e) => {
-      const val = e.target.value + 'px';
-      fontSizeVal.textContent = val;
-      textTopDisplay.style.fontSize = val;
-      textBottomDisplay.style.fontSize = val;
-    });
-
-    topPosSlider.addEventListener('input', (e) => {
-      const val = e.target.value + '%';
-      topPosVal.textContent = val;
-      textTopDisplay.style.top = val;
-    });
-
-    bottomPosSlider.addEventListener('input', (e) => {
-      const val = e.target.value + '%';
-      bottomPosVal.textContent = val;
-      textBottomDisplay.style.bottom = val;
-    });
-
-
-    // 【 4. 顏色選取器功能 】
-    function updateTextStyles() {
-      const textColor = textColorPicker.value;
-      const strokeColor = strokeColorPicker.value;
-
-      textTopDisplay.style.color = textColor;
-      textBottomDisplay.style.color = textColor;
-
-      const strokeShadow = `
-        2px  2px 0px ${strokeColor},
-       -2px  2px 0px ${strokeColor},
-        2px -2px 0px ${strokeColor},
-       -2px -2px 0px ${strokeColor},
-        0px  2px 0px ${strokeColor},
-        0px -2px 0px ${strokeColor},
-        2px  0px 0px ${strokeColor},
-       -2px  0px 0px ${strokeColor},
-        3px  3px 5px rgba(0,0,0,0.8)`;
-
-      textTopDisplay.style.textShadow = strokeShadow;
-      textBottomDisplay.style.textShadow = strokeShadow;
+      return rows;
     }
 
-    textColorPicker.addEventListener('input', updateTextStyles);
-    strokeColorPicker.addEventListener('input', updateTextStyles);
+    /* =========================================================
+       2. 使用 fetch() 讀取 Google 試算表資料
+       ========================================================= */
+    async function fetchMessages() {
+      const loadingEl = document.getElementById('loading');
 
+      try {
+        const response = await fetch(CSV_URL);
+        if (!response.ok) {
+          throw new Error(`HTTP 讀取失敗，狀態碼：${response.status}`);
+        }
 
-    // 【 5. 一鍵截圖下載功能 (html2canvas) 】
-    downloadBtn.addEventListener('click', () => {
-      const originalBtnText = downloadBtn.innerHTML;
-      downloadBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 圖片生成中...`;
-      downloadBtn.style.opacity = '0.7';
+        const csvText = await response.text();
+        const parsedRows = parseCSV(csvText);
 
-      html2canvas(memeContainer, {
-        useCORS: true,
-        scale: 2
-      }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = 'my-meme.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        // CSV 預設欄位順序：[0] 時間戳記, [1] 名字, [2] 悄悄話
+        // 若發現第一列是欄位名稱（如包含「時間」），將其剔除
+        let dataRows = parsedRows;
+        if (parsedRows.length > 0 && parsedRows[0][0].includes('時間')) {
+          dataRows = parsedRows.slice(1);
+        }
 
-        downloadBtn.innerHTML = originalBtnText;
-        downloadBtn.style.opacity = '1';
-      }).catch(err => {
-        console.error('截圖失敗:', err);
-        alert('下載圖片時發生錯誤，請稍後再試！');
-        downloadBtn.innerHTML = originalBtnText;
-        downloadBtn.style.opacity = '1';
+        messagesData = dataRows.map(row => ({
+          timestamp: row[0] || '剛剛',
+          name: row[1] || '熱心朋友',
+          message: row[2] || '（這條留言內容空白～）'
+        }));
+
+        // 如果資料庫為空，載入預設示範資料
+        if (messagesData.length === 0) {
+          useFallbackData();
+        }
+
+      } catch (error) {
+        console.warn('Google 試算表載入失敗，採用備用預覽資料。原因：', error);
+        useFallbackData();
+      } finally {
+        // 隱藏「讀取留言中...」動畫，並繪製卡片牆
+        loadingEl.style.display = 'none';
+        renderCards(messagesData);
+        startCarousel();
+      }
+    }
+
+    // 備用防護資料 (確保在網路異常或本地測試時頁面依然好看)
+    function useFallbackData() {
+      messagesData = [
+        { timestamp: '2023/10/01 10:30', name: '小明', message: '生日快樂！祝你新的一年程式都沒有 Bug，每天都開開心心！🎂' },
+        { timestamp: '2023/10/01 11:15', name: '阿傑', message: '這週週末要不要一起去喝咖啡聊聊？最近發現一家超讚的咖啡廳！☕' },
+        { timestamp: '2023/10/01 12:00', name: 'Emma', message: '謝謝你之前幫我解答前端問題，你寫的 UI 介面真的超級好看，太強了啦！✨' },
+        { timestamp: '2023/10/01 14:20', name: '神秘路人', message: '悄悄話：加油喔！你一直都很棒，繼續保持對生活的熱情吧💪' },
+        { timestamp: '2023/10/01 16:45', name: '莉莉', message: '有空記得出來聚聚，大家都很想你耶～別一直宅在家裡寫程式啦！🥳' }
+      ];
+    }
+
+    /* =========================================================
+       3. 動態渲染留言卡片至 DOM
+       ========================================================= */
+    function renderCards(data) {
+      const wallEl = document.getElementById('wall');
+      wallEl.innerHTML = '';
+
+      data.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.setAttribute('data-index', index);
+
+        // 隨機選取粉彩頭像背景與擷取名字第一個字作為頭像文字
+        const randomColor = AVATAR_COLORS[index % AVATAR_COLORS.length];
+        const initial = item.name.trim().charAt(0).toUpperCase() || '👤';
+
+        card.innerHTML = `
+          <i class="fa-solid fa-quote-right quote-icon"></i>
+          <div class="card-header">
+            <div class="avatar" style="background-color: ${randomColor};">${initial}</div>
+            <div class="user-info">
+              <div class="user-name">${escapeHTML(item.name)}</div>
+              <div class="timestamp">${escapeHTML(item.timestamp)}</div>
+            </div>
+          </div>
+          <div class="card-body">${escapeHTML(item.message)}</div>
+        `;
+
+        // 支援點擊卡片：可以直接手動聚焦該留言！
+        card.addEventListener('click', () => {
+          highlightCard(index);
+          resetCarouselTimer();
+        });
+
+        wallEl.appendChild(card);
       });
+    }
+
+    // HTML 安全轉義 (避免 XSS 攻擊)
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+
+    /* =========================================================
+       4. 輪播亮燈高亮 (Highlight) 特效邏輯
+       ========================================================= */
+    function highlightCard(index) {
+      const wallEl = document.getElementById('wall');
+      const cards = document.querySelectorAll('.card');
+
+      if (cards.length === 0) return;
+
+      // 1. 先清除所有卡片的高亮效果
+      cards.forEach(card => card.classList.remove('highlight'));
+
+      // 2. 為容器加上類別，使未獲選卡片模糊變暗
+      wallEl.classList.add('has-highlight');
+
+      // 3. 為當前目標卡片加上 highlight 高亮類別
+      const targetCard = cards[index];
+      if (targetCard) {
+        targetCard.classList.add('highlight');
+
+        // 平滑滾動讓當前聚焦的卡片維持在視線良好區域
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      // 4. 更新頁頭狀態文字
+      const statusEl = document.getElementById('carouselStatus');
+      statusEl.innerHTML = `<i class="fa-solid fa-sparkles"></i> 展覽輪播中：第 ${index + 1} / ${cards.length} 則留言`;
+
+      currentIndex = index;
+    }
+
+    // 播放下一張卡片
+    function nextSpotlight() {
+      if (messagesData.length === 0) return;
+      const nextIndex = (currentIndex + 1) % messagesData.length;
+      highlightCard(nextIndex);
+    }
+
+    // 開啟計時器
+    function startCarousel() {
+      if (carouselTimer) clearInterval(carouselTimer);
+      
+      // 立即觸發第一張高亮
+      nextSpotlight();
+
+      // ⏱️ 使用 setInterval 每 3 秒鐘 (CAROUSEL_INTERVAL_MS) 依序亮起下一張
+      carouselTimer = setInterval(nextSpotlight, CAROUSEL_INTERVAL_MS);
+    }
+
+    // 重設計時器 (當手動點擊或滑鼠離開時)
+    function resetCarouselTimer() {
+      clearInterval(carouselTimer);
+      carouselTimer = setInterval(nextSpotlight, CAROUSEL_INTERVAL_MS);
+    }
+
+    /* 💡貼心體驗：當滑鼠移入卡片牆時，自動暫停輪播；移開後恢復輪播 */
+    const wallEl = document.getElementById('wall');
+    wallEl.addEventListener('mouseenter', () => {
+      if (carouselTimer) clearInterval(carouselTimer);
+      const statusEl = document.getElementById('carouselStatus');
+      statusEl.innerHTML = `<i class="fa-solid fa-pause"></i> 懸停閱讀中 (已暫停輪播)`;
     });
+
+    wallEl.addEventListener('mouseleave', () => {
+      resetCarouselTimer();
+    });
+
+    // 網頁載入後立即執行
+    window.addEventListener('DOMContentLoaded', fetchMessages);
   </script>
 </body>
 </html>
